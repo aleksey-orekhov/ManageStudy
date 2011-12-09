@@ -7,8 +7,14 @@ import string
 class NIfTIImage(MedImage):
 
     def __init__(self, scan, folder, filename):
-        super(NIfTIImage, self).__init__(scan=scan, folder=folder, filename=filename)
-        self.extension = '.'.join(string.split(filename, '.')[1:])
+        filenamesplit = string.split(filename, '.')
+        if filenamesplit[-1] == 'nii':
+            self.extension = filenamesplit[-1]
+            basename = '.'.join(filenamesplit[:-1])
+        else:   #.nii.gz
+            self.extension = '.'.join(filenamesplit[-2:])
+            basename = '.'.join(filenamesplit[:-2])
+        super(NIfTIImage, self).__init__(scan=scan, folder=folder, filename=filename, basename=basename)
 
 
 

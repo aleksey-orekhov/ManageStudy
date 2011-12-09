@@ -36,6 +36,7 @@ class Scan(object):
 
 
     def __findNIfTIData__(self):
+        import gzip
         'Returns a list of Scan objects at the subject dir'
 
         try:
@@ -64,14 +65,25 @@ class Scan(object):
                     continue
                 else:
                     filenamesplit = string.split(seriesfile, '.')
-                    if filenamesplit[1].lower() != 'nii':
-                        continue
-                    elif self.subject.study.__imageREC__.match(filenamesplit[0]):
+                    if (filenamesplit[-1].lower() == 'nii' or filenamesplit[-2].lower() == 'nii'):
                         newimage = NIfTIImage(self, folder=folder, filename=seriesfile)
-                        self.niftilist.append(newimage)
-                        self.niftis[folder][newimage.series] = newimage
-                    else:
-                        self.subject.study.nonconformingniilist.append(fullseriespath)
+                        if self.subject.study.__imageREC__.match(newimage.basename):
+                            if (newimage.series not in self.niftis[folder]):
+                                self.niftilist.append(newimage)
+                                self.niftis[folder][newimage.series] = newimage
+                            elif newimage.extension == 'nii.gz' : #remove non nii.gz files
+                                print "dealing with gz %s" % self.niftis[folder][newimage.series].path
+                                self.removeNii(self.niftis[folder][newimage.series])
+                                #os.unlink(self.niftis[folder][newimage.series].path)
+                                self.niftilist.append(newimage)
+                                self.niftis[folder][newimage.series] = newimage
+                            else:
+                                print "dealing with nii %s" % newimage.path
+                                os.unlink(newimage.path)
+                        else:
+                            self.subject.study.nonconformingniilist.append(fullseriespath)
+                    #else:  Implicit
+                     #   continue
 
     def __findDICOMData__(self):
         'Returns a list of Scan objects at the subject dir'
@@ -138,10 +150,44 @@ class Scan(object):
             return False
 
 
-
-    def removeNii(self, folder, series):
+    def removeNii(self, badnifti):
         '''
-        Removes all Nii Files matching type (now folder) and basename (now filename)
+        Removes all nifti file corresponding to nifti object
+        '''
+        folder = badnifti.folder
+        series = badnifti.series
+
+        recycledir = os.path.join(self.subject.study.path, 'Recycling')
+        if not os.path.exists(recycledir):
+            os.makedirs(recycledir)
+        mydatetime = datetime.datetime.now().__str__()
+        matchfound = False
+        deleted = False
+        newimagelist = []
+        for image in self.niftilist:
+            deleted = False
+            if image.path == badnifti.path:
+                matchfound = True
+                tarpath = os.path.join(recycledir, 'nii' + self.subject.subid + self.scanid + folder + series + mydatetime + '.tar.gz')
+                filenameinarchive = os.path.join('Subjects', self.subject.subid , self.scanid, image.folder, image.basename)
+                with tarfile.open(tarpath, "w:gz") as tar:
+                    if os.path.exists(image.path):
+                        tar.add(name=image.path, arcname=filenameinarchive)
+                        os.unlink(image.path)
+                        del self.niftis[image.folder][image.series]
+                        deleted = True
+                    else:
+                        raise ScanErrors.DeleteNiiError(niiname=image.path, description="File does not exist")
+            if not deleted:
+                newimagelist.append(image)
+                self.niftis[image.folder][image.series] = image
+        if not matchfound:
+            raise ScanErrors.DeleteNiiError(niiname=image.path, description="No matching Images found")
+        self.niftilist = newimagelist
+
+    def removeSeries(self, folder, series):
+        '''
+        Removes all Nii Files matching folder and series
         for the given scan
         '''
         recycledir = os.path.join(self.subject.study.path, 'Recycling')
@@ -161,13 +207,13 @@ class Scan(object):
                     if os.path.exists(image.path):
                         tar.add(name=image.path, arcname=filenameinarchive)
                         os.unlink(image.path)
-                        del self.image[image.folder][image.series]
+                        del self.niftis[image.folder][image.series]
                         deleted = True
                     else:
                         raise ScanErrors.DeleteNiiError(niiname=image.path, description="File does not exist")
             if not deleted:
                 newimagelist.append(image)
-                self.image[image.folder][image.series] = image
+                self.niftis[image.folder][image.series] = image
         if not matchfound:
             raise ScanErrors.DeleteNiiError(niiname=image.path, description="No matching Images found")
         self.niftilist = newimagelist

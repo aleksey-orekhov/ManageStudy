@@ -160,6 +160,14 @@ class Study(object):
             raise StudyErrors.DeleteSubjectError(subid=subject.subid, description="Directory does not exist")
             return False
 
+    def wipenonconformingNiis(self):
+        if (raw_input("Are you sure?: ") == 'YES'):
+            for niftipath in self.nonconformingniilist:
+                print "Deleting %s" % niftipath
+                os.unlink(niftipath)
+            self.nonconformingniilist = []
+
+
     def __str__(self):
         outstring = 'Study: %s\n\t' % self.name
         for subject in self.subjectlist:

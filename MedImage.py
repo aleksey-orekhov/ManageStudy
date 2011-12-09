@@ -4,10 +4,12 @@ import string
 
 class MedImage(object):
 
-    def __init__(self, scan, folder, filename):
+    def __init__(self, scan, folder, filename, basename=''):
         self.scan = scan
         self.folder = folder
-        self.basename = string.split(filename, '.')[0]
+        self.basename = basename;
+        if (basename == ''):
+            self.basename = string.split(filename, '.')[0]
         self.series = string.replace(self.basename, self.scan.subject.subid + '_' + self.scan.scanid + '_', '')
         self.filename = filename
         self.path = os.path.join(self.scan.path, self.folder, self.filename)
