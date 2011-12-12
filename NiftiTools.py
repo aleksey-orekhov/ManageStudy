@@ -4,6 +4,7 @@ import numpy as np
 import nibabel as nib
 import math
 
+#add comments! add docstrings!
 def striprotations(InputNiiFilename, OutputNiiFilename):
     InputImageHandle = nib.load(InputNiiFilename)
     InputImageAffine = InputImageHandle.get_affine()
