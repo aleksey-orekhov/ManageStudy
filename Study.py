@@ -30,8 +30,9 @@ class Study(object):
         self.path = os.path.normpath(path)
         self.name = os.path.basename(self.path)
         self.subjects_dir = os.path.join(self.path, 'Subjects')
-        self.subjectlist = []
-        self.subjects = {}
+        self.EXsubjects_dir = os.path.join(self.path, 'ExcludedSubjects')
+        self.Qsubjects_dir = os.path.join(self.path, 'Quarantine', 'Subjects')
+        self.IncomingDICOM_dir = os.path.join(self.path, 'Quarantine', 'IncomingDICOM')
         self.nonconformingniilist = []
         self.nonconformingdicomlist = []
         self.__subjectfolderRE__ = subjectfolderRE
@@ -42,7 +43,9 @@ class Study(object):
         self.__setexcludedscanfolders__(ignoredirlist)
         self.__imageRE__ = '_'.join(['(' + self.__subjectfolderRE__ + ')', '(' + self.__scanfolderRE__ + ')', '(.*?)$'])
         self.__imageREC__ = re.compile(self.__imageRE__)
-        self.__findSubjects__()
+        (self.subjectlist, self.subjects) = self.__findSubjects__(self.subjects_dir)
+        (self.EXsubjectlist, self.EXsubjects) = self.__findSubjects__(self.EXsubjects_dir)
+        (self.Qsubjectlist, self.Qsubjects) = self.__findSubjects__(self.Qsubjects_dir)
 
 #    def setdcmrcv(self, AETitle, port):
 #        self.dcmrcv = dcmrcv(AETitle, port, RCVDIR=os.path.join(self.path, 'DICOM'))
@@ -62,6 +65,8 @@ class Study(object):
         with open(configfile, 'wb') as mainconfig:
             parser.write(mainconfig)
         self.__subjectfolderREC__ = re.compile(self.__subjectfolderRE__)
+
+#TODO: clean up code..just split this into public and private methods..no one wants to change the regex here anyhow.
 
     def __setscanfolderRE__(self, scanfolderRE):
         configdir = os.path.join(self.path, 'Config')
@@ -94,25 +99,24 @@ class Study(object):
         with open(configfile, 'wb') as mainconfig:
             parser.write(mainconfig)
 
-    def __findSubjects__(self):
-        'Returns a list of Subject objects at the subject dir'
+    def __findSubjects__(self, subjectdir):
+        '''takes subjectdir and returns a list and hash of subject objects for all the folders inside 
+        as (subjectlist,subjectdict)=__findSubjects__(subjectdir)'''
 
-        if not os.path.exists(self.subjects_dir):
-            os.makedirs(self.subjects_dir)
+        if not os.path.exists():
+            os.makedirs(subjects_dir)
 
         try:
-            subjectFiles = os.listdir(self.subjects_dir)
+            subjectFiles = os.listdir(subjects_dir)
         except:
             warnings.warn("\nCould not list files in: " + self.subjects_dir)
             return
 
-        self.subjectlist = []
-        self.subjects = {}
-        self.nonconformingniilist = []
-        self.nonconformingdicomlist = []
+        subjectlist = []
+        subjectdict = {}
 
         for file in subjectFiles:
-            fulldir = os.path.join(self.subjects_dir, file)
+            fulldir = os.path.join(subjects_dir, file)
             if (not os.path.isdir(fulldir)):
                 continue
             m = self.__subjectfolderREC__.match(file)
@@ -120,8 +124,9 @@ class Study(object):
                 newsubject = Subject.Subject(self, m.group(0))
             else:
                 raise Exception('could not parse ' + file + '\n Should it be in this directory?\n')
-            self.subjectlist.append(newsubject)
-            self.subjects[newsubject.subid] = newsubject
+            subjectlist.append(newsubject)
+            subjectdict[newsubject.subid] = newsubject
+        return (subjectlist, subjectdict)
 
 
     def addSubjects(self, subids, warn):
