@@ -99,11 +99,11 @@ class Study(object):
         with open(configfile, 'wb') as mainconfig:
             parser.write(mainconfig)
 
-    def __findSubjects__(self, subjectdir):
-        '''takes subjectdir and returns a list and hash of subject objects for all the folders inside 
-        as (subjectlist,subjectdict)=__findSubjects__(subjectdir)'''
+    def __findSubjects__(self, subjects_dir):
+        '''takes subjects_dir and returns a list and hash of subject objects for all the folders inside 
+        as (subjectlist,subjectdict)=__findSubjects__(subjects_dir)'''
 
-        if not os.path.exists():
+        if not os.path.exists(subjects_dir):
             os.makedirs(subjects_dir)
 
         try:
