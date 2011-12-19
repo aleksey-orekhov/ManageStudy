@@ -72,3 +72,81 @@ Meant to be used as a way of growing masks only..all values set to 1"""
     OutputNiftiFileHandle = nib.Nifti1Image(Data, InputImageAffine, header=InputImageHeader)
     OutputNiftiFileHandle.set_data_dtype(int32)
     OutputNiftiFileHandle.to_filename(OutputNiiFilename)
+
+def cropNifti(InputNiiFilename, intensity, OutputNiiFilename):
+    """draws lines from image frame midpoints to center of image which stop when they hit a voxel with given intensity. Crops Using coordinates of stop locations"""
+    InputImageHandle = nib.load(InputNiiFilename)
+    InputImageAffine = InputImageHandle.get_affine()
+    InputImageHeader = InputImageHandle.get_header()
+    Data = array(InputImageHandle.get_data())
+    (xlen, ylen, zlen) = Data.shape
+    xlen, ylen, zlen = xlen - 1, ylen - 1, zlen - 1
+    xmin, xmax, ymin, ymax, zmin, zmax = -1, -1, -1, -1, -1, -1
+    for x in range(0, xlen):
+        for y in range (0, ylen):
+            for z in range (0, zlen):
+                if(Data[x, y, z] > intensity):
+                    xmin = x
+                    break;
+            if(xmin > 0):
+                break
+        if(xmin > 0):
+                break
+    for x in range(xlen, 0, -1):
+        for y in range (0, ylen):
+            for z in range (0, zlen):
+                if(Data[x, y, z] > intensity):
+                    xmax = x
+                    break;
+            if(xmax > 0):
+                break
+        if(xmax > 0):
+                break
+    for y in range(0, ylen):
+        for x in range (0, xlen):
+            for z in range (0, zlen):
+                if(Data[x, y, z] > intensity):
+                    ymin = y
+                    break;
+            if(ymin > 0):
+                break
+        if(ymin > 0):
+                break
+    for y in range(ylen, 0, -1):
+        for x in range (0, xlen):
+            for z in range (0, zlen):
+                if(Data[x, y, z] > intensity):
+                    ymax = y
+                    break;
+            if(ymax > 0):
+                break
+        if(ymax > 0):
+                break
+    for z in range(0, zlen):
+        for y in range (0, ylen):
+            for x in range (0, xlen):
+                if(Data[x, y, z] > intensity):
+                    zmin = z
+                    break;
+            if(zmin > 0):
+                break
+        if(zmin > 0):
+                break
+    for z in range(zlen, 0, -1):
+        for y in range (0, ylen):
+            for x in range (0, xlen):
+                if(Data[x, y, z] > intensity):
+                    zmax = z
+                    break;
+            if(zmax > 0):
+                break
+        if(zmax > 0):
+                break
+
+    print "xm: %d xM %d ym %d yM %d zm %d zM %d" % (xmin, xmax + 1, ymin, ymax + 1, zmin, zmax + 1)  # +1 to account for funny python indexing
+
+    DataOut = Data[xmin:xmax, ymin:ymax, zmin:zmax]
+    OutputNiftiFileHandle = nib.Nifti1Image(DataOut, InputImageAffine, header=InputImageHeader)
+    OutputNiftiFileHandle.set_data_dtype(int32)
+    OutputNiftiFileHandle.to_filename(OutputNiiFilename)
+
